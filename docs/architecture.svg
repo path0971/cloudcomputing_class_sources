@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 470" width="1000" height="470" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <style>
+    .bg { fill: #ffffff; stroke: #d0d7de; }
+    .title { fill: #1f2328; font-size: 15px; font-weight: 600; }
+    .label { fill: #1f2328; font-size: 13px; font-weight: 600; }
+    .sub { fill: #59636e; font-size: 11px; }
+    .code { fill: #1f2328; font-size: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .edge-lbl { fill: #59636e; font-size: 11px; }
+    .actor { fill: #f6f8fa; stroke: #8c959f; }
+    .edge { fill: #fff8e6; stroke: #d4a72c; }
+    .fn { fill: #eef4ff; stroke: #4c8dff; }
+    .group { fill: none; stroke: #8c959f; stroke-dasharray: 5 4; }
+    .db { fill: #e6faf2; stroke: #1a9f6b; }
+    .ext { fill: #f6f8fa; stroke: #8c959f; stroke-dasharray: 4 3; }
+    .line { stroke: #57606a; stroke-width: 1.6; fill: none; }
+    .dash { stroke: #57606a; stroke-width: 1.6; fill: none; stroke-dasharray: 6 4; }
+    .arrow { fill: #57606a; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0d1117; stroke: #30363d; }
+      .title, .label, .code { fill: #e6edf3; }
+      .sub, .edge-lbl { fill: #9198a1; }
+      .actor { fill: #161b22; stroke: #6e7681; }
+      .edge { fill: #2b2210; stroke: #d4a72c; }
+      .fn { fill: #0f1d36; stroke: #4c8dff; }
+      .group { stroke: #6e7681; }
+      .db { fill: #0b2a1f; stroke: #2fbf86; }
+      .ext { fill: #161b22; stroke: #6e7681; }
+      .line, .dash { stroke: #9198a1; }
+      .arrow { fill: #9198a1; }
+    }
+  </style>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" class="arrow"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0.5" y="0.5" width="999" height="469" rx="14"/>
+
+  <!-- Actors -->
+  <rect class="actor" x="30" y="80" width="120" height="140" rx="10"/>
+  <text class="label" x="90" y="140" text-anchor="middle">User</text>
+  <text class="sub" x="90" y="158" text-anchor="middle">Browser</text>
+
+  <rect class="actor" x="30" y="300" width="120" height="80" rx="10"/>
+  <text class="label" x="90" y="336" text-anchor="middle">Admin</text>
+  <text class="sub" x="90" y="354" text-anchor="middle">Basic Auth</text>
+
+  <!-- Edge layer -->
+  <text class="title" x="190" y="46">Vercel Edge</text>
+  <rect class="edge" x="190" y="80" width="170" height="60" rx="10"/>
+  <text class="label" x="275" y="106" text-anchor="middle">Firewall</text>
+  <text class="sub" x="275" y="124" text-anchor="middle">Rate limit · 429</text>
+
+  <rect class="edge" x="190" y="300" width="170" height="60" rx="10"/>
+  <text class="code" x="275" y="326" text-anchor="middle">proxy.js</text>
+  <text class="sub" x="275" y="344" text-anchor="middle">authenticate → authorize</text>
+
+  <!-- Functions -->
+  <rect class="group" x="410" y="60" width="300" height="380" rx="12"/>
+  <text class="title" x="425" y="46">Next.js · Vercel Functions</text>
+
+  <rect class="fn" x="430" y="80" width="260" height="60" rx="10"/>
+  <text class="code" x="560" y="106" text-anchor="middle">POST /api/shorten</text>
+  <text class="sub" x="560" y="124" text-anchor="middle">validate · SHA-256 code · upsert</text>
+
+  <rect class="fn" x="430" y="170" width="260" height="60" rx="10"/>
+  <text class="code" x="560" y="196" text-anchor="middle">GET /{code}</text>
+  <text class="sub" x="560" y="214" text-anchor="middle">lookup · record click · 307</text>
+
+  <rect class="fn" x="430" y="300" width="260" height="50" rx="10"/>
+  <text class="code" x="560" y="330" text-anchor="middle">/admin dashboard</text>
+
+  <rect class="fn" x="430" y="375" width="260" height="50" rx="10"/>
+  <text class="code" x="560" y="398" text-anchor="middle">GET /api/stats</text>
+  <text class="sub" x="560" y="414" text-anchor="middle">auth check · aggregate</text>
+
+  <!-- Data & external -->
+  <path class="db" d="M790,190 a70,16 0 0,1 140,0 v120 a70,16 0 0,1 -140,0 z"/>
+  <path class="db" d="M790,190 a70,16 0 0,0 140,0" fill="none"/>
+  <text class="label" x="860" y="252" text-anchor="middle">Neon</text>
+  <text class="sub" x="860" y="270" text-anchor="middle">Serverless Postgres</text>
+
+  <rect class="ext" x="790" y="70" width="140" height="56" rx="10"/>
+  <text class="label" x="860" y="96" text-anchor="middle">Target site</text>
+  <text class="sub" x="860" y="113" text-anchor="middle">307 redirect</text>
+
+  <!-- Flows -->
+  <path class="line" d="M150,110 H188" marker-end="url(#a)"/>
+  <path class="line" d="M360,110 H428" marker-end="url(#a)"/>
+  <text class="edge-lbl" x="384" y="102" text-anchor="middle">shorten</text>
+
+  <path class="line" d="M150,200 H428" marker-end="url(#a)"/>
+  <text class="edge-lbl" x="290" y="192" text-anchor="middle">open short link</text>
+
+  <path class="line" d="M150,330 H188" marker-end="url(#a)"/>
+  <path class="line" d="M360,325 H428" marker-end="url(#a)"/>
+  <path class="line" d="M560,350 V373" marker-end="url(#a)"/>
+
+  <path class="line" d="M690,110 C745,110 745,215 788,225" marker-end="url(#a)"/>
+  <path class="line" d="M690,200 H788" marker-end="url(#a)"/>
+  <path class="line" d="M690,400 C750,400 760,320 788,300" marker-end="url(#a)"/>
+  <text class="edge-lbl" x="748" y="408">SQL</text>
+
+  <path class="dash" d="M690,185 C740,185 740,98 788,98" marker-end="url(#a)"/>
+</svg>

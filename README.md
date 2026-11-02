@@ -1,65 +1,52 @@
 <div align="center">
 
-# 🔗 URL Shortener on the Cloud
+<img src="docs/architecture.svg" alt="Architecture" width="100%"/>
 
-**서울사이버대학교 클라우드 컴퓨팅** 수업 1–7주차 실습을 하나로 완성한 서버리스 URL 단축 서비스
+# 🔗 Snip
 
-[![Live Demo](https://img.shields.io/badge/Live_Demo-cloudcomputing--class--sources.vercel.app-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://cloudcomputing-class-sources.vercel.app)
+**Next.js · Neon · Vercel로 만든 서버리스 URL 단축 서비스**
+
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Visit-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://cloudcomputing-class-sources.vercel.app)
 
 ![Next.js](https://img.shields.io/badge/Next.js_16-000000?style=flat-square&logo=nextdotjs&logoColor=white)
 ![React](https://img.shields.io/badge/React_19-61DAFB?style=flat-square&logo=react&logoColor=black)
-![Neon](https://img.shields.io/badge/Neon_Postgres-00E599?style=flat-square&logo=postgresql&logoColor=black)
+![Postgres](https://img.shields.io/badge/Neon_Postgres-00E599?style=flat-square&logo=postgresql&logoColor=black)
 ![Vercel](https://img.shields.io/badge/Vercel-000000?style=flat-square&logo=vercel&logoColor=white)
-![Auto Check](https://img.shields.io/badge/자동_점검-20%2F20_PASS-2ea44f?style=flat-square)
 
 </div>
 
 ---
 
-## ✨ 주요 기능
+긴 URL을 붙여 넣으면 6자리 짧은 링크를 돌려주고, 그 링크로 들어오면 원래 주소로 보내 주는 작은 서비스입니다.
+서버를 직접 띄우지 않고 **Vercel Functions + 서버리스 Postgres**만으로 저장, 리다이렉트, 사용량 통계, 관리자 보호, 요청 제한까지 구성해 보는 것이 목표였습니다.
 
-| | 기능 | 설명 |
-|:-:|---|---|
-| ✂️ | **URL 단축** | 긴 URL을 6자리 `shortCode`로 변환. 같은 URL은 항상 같은 코드 |
-| ↪️ | **Redirect** | `/{shortCode}` 접속 시 `307` + `Cache-Control: no-store`로 원본 이동 |
-| 🛡️ | **입력 검증** | 빈 값, 2048자 초과, 잘못된 형식, `javascript:` URL 차단 |
-| 🔁 | **자기 참조 차단** | 이 서비스 자신의 주소는 단축 거부 (리다이렉트 루프 방지) |
-| 📊 | **사용량 통계** | 클릭 수·최근 클릭 시간 기록, `/admin` 대시보드 |
-| 🔐 | **인증·인가** | Basic Auth(인증) + 역할 기반 권한(인가)으로 `/admin`, `/api/stats` 보호 |
-| 🚦 | **Rate Limit** | Vercel Firewall로 `POST /api/shorten` 요청 수 제한 (초과 시 `429`) |
+## ✨ Features
 
-## 🏗️ 아키텍처
+- ✂️ **Deterministic short codes**: SHA-256 기반 6자리 코드. 같은 URL은 언제나 같은 링크가 되어 중복 저장이 없습니다.
+- ↪️ **Fast redirects**: `307 Temporary Redirect` + `Cache-Control: no-store`로 매 요청이 서버를 거치도록 해 클릭을 빠짐없이 기록합니다.
+- 🛡️ **Input hardening**: 빈 값, 2048자 초과, 잘못된 형식, `javascript:` 같은 위험한 스킴을 차단합니다.
+- 🔁 **Loop protection**: 이 서비스 자신의 주소는 단축하지 않아 리다이렉트 루프를 막습니다.
+- 📊 **Usage analytics**: 링크별 클릭 수와 최근 클릭 시간을 기록하고 `/admin` 대시보드에서 확인합니다.
+- 🔐 **AuthN / AuthZ 분리**: "누구인가"(인증)와 "무엇을 할 수 있는가"(인가)를 별도 모듈로 나누고, 화면(`/admin`)과 데이터 API(`/api/stats`)를 각각 보호합니다.
+- 🚦 **Rate limiting**: Vercel Firewall이 함수 앞단에서 `POST /api/shorten` 남용을 `429`로 차단합니다.
 
-```mermaid
-flowchart LR
-    U([👤 사용자]) -->|"POST /api/shorten"| FW{{"Vercel Firewall<br/>Rate Limit"}}
-    FW -->|허용| S["Route Handler<br/>/api/shorten"]
-    FW -.->|초과| R429["429"]
-    S -->|"INSERT … ON CONFLICT"| DB[(Neon Postgres)]
+## 🧭 How it works
 
-    U -->|"GET /{shortCode}"| RD["Route Handler<br/>/{shortCode}"]
-    RD -->|SELECT + 클릭 기록| DB
-    RD -->|"307 + Location"| O([🌐 원본 사이트])
-
-    A([🧑‍💼 관리자]) -->|"GET /admin"| P["proxy.js<br/>인증 → 인가"]
-    P --> AD["/admin 화면"]
-    AD -->|"GET /api/stats"| ST["/api/stats<br/>인증 → 인가"]
-    ST -->|집계| DB
+```text
+POST /api/shorten ─▶ validate ─▶ SHA-256 → 6-char code ─▶ INSERT … ON CONFLICT DO NOTHING ─▶ 201 / 200
+GET  /{code}      ─▶ lookup ─▶ record click (best-effort) ─▶ 307 Location: <original>
+GET  /admin       ─▶ proxy.js: authenticate → authorize("admin:page") ─▶ dashboard
+GET  /api/stats   ─▶ authenticate → authorize("stats:read") ─▶ aggregate SQL ─▶ JSON
 ```
 
-## 🗓️ 주차별 구현 내용
+**설계에서 신경 쓴 점**
 
-| 주차 | 주제 | 구현 |
-|:-:|---|---|
-| 1 | 배포 파이프라인 | GitHub → Vercel 자동 배포 |
-| 2 | 프론트엔드 입력 검증 | `validateUrl()` 클라이언트 검증 |
-| 3 | Backend API | `POST /api/shorten`, HTTP Status Code (`201`/`400`/`500`) |
-| 4 | 관리형 DB | Neon Postgres에 URL 매핑 저장 |
-| 5 | 동적 라우트 | `GET /{shortCode}` → `307` / `404` |
-| 6 | 관측성 | 클릭 기록, Runtime Logs, `/api/stats`, `/admin` |
-| 7 | 보안 | 인증·인가 분리, API 보호, Firewall Rate Limit |
+- **멱등한 생성**: 코드가 URL에서 결정되므로 같은 요청을 몇 번 보내도 결과가 같고, `ON CONFLICT`로 경쟁 상태에서도 행이 하나만 남습니다.
+- **가용성 우선**: 클릭 기록이 실패해도 리다이렉트는 그대로 수행합니다. 통계 일부를 잃는 편이 링크가 깨지는 것보다 낫기 때문입니다.
+- **API도 직접 보호**: 관리자 화면만 막으면 `/api/stats`를 직접 호출해 데이터를 볼 수 있으므로, 데이터 API에서도 다시 인증하고 인가를 확인합니다.
+- **스키마 자동 준비**: 첫 DB 접근 시 `CREATE TABLE IF NOT EXISTS`를 실행해 별도 마이그레이션 없이 바로 배포할 수 있습니다.
 
-## 📡 API 한눈에 보기
+## 📡 API
 
 ```http
 POST /api/shorten
@@ -71,65 +58,73 @@ Content-Type: application/json
 ```json
 {
   "shortCode": "aB3xK9",
-  "shortUrl": "https://cloudcomputing-class-sources.vercel.app/aB3xK9",
+  "shortUrl": "https://<your-domain>/aB3xK9",
   "originalUrl": "https://www.google.com"
 }
 ```
 
-| 상황 | Status | `error.code` |
+| Case | Status | `error.code` |
 |---|:-:|---|
-| 새 URL 단축 | `201` | — |
-| 이미 단축된 URL | `200` | — |
-| URL 누락·빈 문자열 | `400` | `MISSING_URL` |
-| 형식 오류·`javascript:` 등 | `400` | `INVALID_URL` |
-| 자기 서비스 주소 | `400` | `SELF_REFERENCE_URL` |
-| 요청 한도 초과 | `429` | — |
+| 새 링크 생성 | `201` | |
+| 이미 있는 링크 | `200` | |
+| URL 누락 / 빈 값 | `400` | `MISSING_URL` |
+| 형식 오류, 허용되지 않는 스킴 | `400` | `INVALID_URL` |
+| 2048자 초과 | `400` | `URL_TOO_LONG` |
+| 이 서비스 자신의 주소 | `400` | `SELF_REFERENCE_URL` |
+| 요청 한도 초과 | `429` | |
 
-전체 명세는 [프로젝트 README](week01/hello-cloud-starter/README.md#api)를 참고하세요.
+| Endpoint | 설명 |
+|---|---|
+| `GET /{code}` | `307` 리다이렉트, 없는 코드는 `404` |
+| `GET /api/stats` | 전체/링크별 사용량 JSON (관리자 인증 필요) |
+| `GET /admin` | 사용량 대시보드 (관리자 인증 필요) |
 
-## ✅ 자동 점검 결과
-
-[과제 공개 점검 스크립트](https://github.com/alifewellspent/iscu_cloud_class/tree/main/assignment) 기준 **20 / 20점**
-
-| ID | 항목 | 배점 | 결과 |
-|:-:|---|:-:|:-:|
-| T01 | `GET /` → 200 | 1 | ✅ |
-| T02 | 단축 성공 201, shortCode/shortUrl/originalUrl | 3 | ✅ |
-| T03 | 누락·빈 문자열 → 400 `MISSING_URL` | 1 | ✅ |
-| T04 | 잘못된 URL·`javascript:` → 400 `INVALID_URL` | 1 | ✅ |
-| T05 | 같은 URL → 같은 shortCode | 3 | ✅ |
-| T06 | Redirect 307, Location 일치 | 2 | ✅ |
-| T07 | 없는 shortCode → 404 | 1 | ✅ |
-| T08 | Redirect `Cache-Control: no-store` | 1 | ✅ |
-| T09 | 인증 없는 `/admin`, `/api/stats` → 401 | 2 | ✅ |
-| T10 | 자기 서비스 URL 거부 → 400 | 3 | ✅ |
-| T11 | 다른 Vercel 서비스 URL → 201 | 2 | ✅ |
-
-## 📁 저장소 구조
+## 🗂️ Project structure
 
 ```text
-.
-├─ week01/hello-cloud-starter/   ⭐ 완성된 과제 프로젝트 (Vercel Root Directory)
-│  ├─ app/                       화면, Route Handler
-│  ├─ lib/                       DB, 통계, 인증, 인가
-│  ├─ proxy.js                   /admin 보호
-│  └─ db/schema.sql              테이블 스키마
-└─ week02 ~ week07/              주차별 실습 안내 문서와 제공 파일 (원본)
+week01/hello-cloud-starter/      # 앱 루트 (Vercel Root Directory)
+├─ app/
+│  ├─ page.js                    # 메인 화면
+│  ├─ [shortCode]/route.js       # 리다이렉트
+│  ├─ admin/page.js              # 대시보드
+│  └─ api/
+│     ├─ shorten/route.js        # 링크 생성
+│     └─ stats/route.js          # 통계 API
+├─ lib/
+│  ├─ db.js                      # Neon 연결, 스키마 준비, 저장/조회
+│  ├─ stats.js                   # 클릭 기록, 집계 쿼리
+│  ├─ auth.js                    # 인증 (Basic Auth)
+│  └─ authorization.js           # 인가 (role → permission)
+├─ proxy.js                      # /admin 요청 가드
+└─ db/schema.sql
 ```
 
-## 🚀 로컬 실행
+## 🚀 Getting started
 
 ```bash
 cd week01/hello-cloud-starter
-cp .env.example .env.local   # DATABASE_URL, ADMIN_PASSWORD 입력
+cp .env.example .env.local
 npm install
-npm run dev                  # http://localhost:3000
+npm run dev        # http://localhost:3000
 ```
 
-> `urls` 테이블은 첫 요청 시 자동으로 생성됩니다.
+| Env | 설명 |
+|---|---|
+| `DATABASE_URL` | Neon Postgres 연결 문자열 (pooled) |
+| `ADMIN_PASSWORD` | `/admin` 로그인 비밀번호 (사용자 이름 `admin`) |
 
----
+### Deploy on Vercel
 
-<div align="center">
-<sub>서울사이버대학교 클라우드 컴퓨팅 수업 과제 · 실습 자료 원본: 강의 제공 저장소</sub>
-</div>
+1. 저장소를 Vercel에 Import하고 **Root Directory**를 `week01/hello-cloud-starter`로 지정합니다.
+2. Storage(Marketplace)에서 **Neon**을 연결하면 `DATABASE_URL`이 자동으로 등록됩니다.
+3. `ADMIN_PASSWORD`를 환경변수에 추가합니다.
+4. (선택) Firewall에서 `POST /api/shorten`에 Rate Limit 규칙을 추가합니다.
+
+## 🛠️ Tech stack
+
+| Layer | Tech |
+|---|---|
+| Frontend | React 19, Next.js 16 App Router |
+| Backend | Next.js Route Handlers on Vercel Functions (Node.js) |
+| Database | Neon Serverless Postgres (`@neondatabase/serverless`) |
+| Edge | Vercel Firewall (rate limiting), Next.js Proxy |
