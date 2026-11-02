@@ -9,11 +9,11 @@ function validateUrl(value) {
 
   // TODO 1: 빈 값 검증
   if (trimmedUrl.length === 0) {
-    return "URL 입력해주세요.";
+    return "URL을 입력해 주세요.";
   }
   // TODO 2: 최대 길이 검증
   if (trimmedUrl.length > MAX_URL_LENGTH) {
-    return `URL은 ${MAX_URL_LENGTH}자 이하로 입력해주세요.`;
+    return `URL은 ${MAX_URL_LENGTH}자 이하로 입력해 주세요.`;
   }
   // TODO 3: http:// 또는 https:// 시작 여부 검증
   if (
@@ -27,7 +27,12 @@ function validateUrl(value) {
   try {
     parsedUrl = new URL(trimmedUrl);
   } catch (error) {
-    return "올바른 URL 형식이 아닙니다.";
+    return "올바른 URL 형식으로 입력해 주세요.";
+  }
+
+  // http://abcde 처럼 도메인 형태가 아닌 주소도 올바르지 않은 형식으로 처리합니다.
+  if (!parsedUrl.hostname.includes(".")) {
+    return "올바른 URL 형식으로 입력해 주세요.";
   }
 
   return null;
@@ -58,12 +63,30 @@ export default function Home() {
 
     setIsLoading(true);
 
-    await new Promise((resolve) => {
-      setTimeout(resolve, 800);
-    });
+    try {
+      const response = await fetch("/api/shorten", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          originalUrl,
+        }),
+      });
 
-    setResult("입력값 검증이 완료되었습니다. 아직 Backend API와 연결되진 않았습니다.");
-    setIsLoading(false);
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error?.message || "요청 처리에 실패했습니다.");
+        return;
+      }
+
+      setResult(data.shortUrl);
+    } catch {
+      setError("서버에 연결할 수 없습니다.");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -94,7 +117,7 @@ export default function Home() {
               disabled={isLoading}
             />
             <button type="submit" disabled={isLoading}>
-              {isLoading ? "Checking..." : "Shorten"}
+              {isLoading ? "Shortening..." : "Shorten"}
             </button>
           </div>
 
@@ -108,13 +131,15 @@ export default function Home() {
             {isLoading && (
               <p className="message message-loading" role="status">
                 <span className="spinner" aria-hidden="true" />
-                입력한 URL을 확인하고 있습니다.
+                짧은 URL을 만들고 있습니다.
               </p>
             )}
 
             {result && (
               <p className="message message-success" role="status">
-                {result}
+                <a href={result} target="_blank" rel="noreferrer">
+                  {result}
+                </a>
               </p>
             )}
           </div>
@@ -123,8 +148,8 @@ export default function Home() {
         <aside className="practice-note">
           <span aria-hidden="true">✓</span>
           <p>
-            이번 주에는 <code>validateUrl</code> 함수를 완성해 입력값 검증을
-            구현합니다.
+            입력한 URL은 <code>/api/shorten</code>에서 검증된 뒤 DB에
+            저장되고, 짧은 URL로 접속하면 원본 URL로 이동합니다.
           </p>
         </aside>
       </section>
