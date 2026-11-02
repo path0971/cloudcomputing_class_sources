@@ -2,7 +2,7 @@ import { getSql } from "./db";
 
 // Redirect가 성공하기 전에 클릭 사용량을 기록합니다.
 export async function recordClick(shortCode) {
-  const sql = getSql();
+  const sql = await getSql();
 
   await sql`
     UPDATE urls
@@ -15,7 +15,7 @@ export async function recordClick(shortCode) {
 
 // 전체 URL 수, 전체 클릭 수, 한 번 이상 클릭된 URL 수를 집계합니다.
 export async function getSummaryStats() {
-  const sql = getSql();
+  const sql = await getSql();
 
   const rows = await sql`
     SELECT
@@ -36,7 +36,7 @@ export async function getSummaryStats() {
 
 // 한 번 이상 클릭된 URL 가운데 클릭 수가 가장 많은 URL을 찾습니다.
 export async function getTopUrl() {
-  const sql = getSql();
+  const sql = await getSql();
 
   const rows = await sql`
     SELECT
@@ -64,7 +64,7 @@ export async function getTopUrl() {
 
 // 관리자 화면에 표시할 URL별 사용량 정보를 가져옵니다.
 export async function getUrlStats() {
-  const sql = getSql();
+  const sql = await getSql();
 
   const rows = await sql`
     SELECT

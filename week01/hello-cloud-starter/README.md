@@ -79,7 +79,8 @@ db/schema.sql              urls 테이블 생성 SQL
 
 ### 1. DB 준비 (Neon)
 
-Neon SQL Editor에서 [`db/schema.sql`](db/schema.sql)을 실행합니다.
+`urls` 테이블은 서버가 처음 DB에 접근할 때 자동으로 생성됩니다(`lib/db.js`의 `ensureSchema()`).
+같은 SQL을 [`db/schema.sql`](db/schema.sql)에 두었으므로 Neon SQL Editor에서 직접 실행해도 됩니다.
 
 ### 2. 환경변수
 
